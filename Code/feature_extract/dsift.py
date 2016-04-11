@@ -23,7 +23,7 @@ def extract_feature(label_filename, data_root):
                 print( temp )
                 
                 
-def generator_centers(data_root, K):
+def generator_centers(data_root, K, downsample=1):
     dense = cv2.FeatureDetector_create("Dense")
     brief = cv2.DescriptorExtractor_create("SIFT")
     
@@ -38,7 +38,7 @@ def generator_centers(data_root, K):
     points = []
     for image_filename in image_filenames:
         cnt += 1
-        if cnt%100 > 0:
+        if cnt%downsample > 0:
             continue
         img = cv2.imread(image_filename, cv2.IMREAD_GRAYSCALE)
         if img.mean()>250:
@@ -48,16 +48,14 @@ def generator_centers(data_root, K):
         for t in des:
             points.append(t)
         #print("# kps: {}, descriptors: {}".format(len(kp), des.shape) )
-    print( 'sample points: {0}x{1}'.format(len(points), len(points[0]) ) )
     
-#    kmeans = sklearn.cluster.KMeans(n_clusters=K, init='k-means++', n_init=10, max_iter=3000, tol=0.0001, precompute_distances='auto', n_jobs=-1)    
-#    kmeans.fit( np.asarray(points) )
-    criteria = (cv2.TERM_CRITERIA_EPS, 3000, 0.0001)
+    print( 'sample points: {0}x{1}'.format(len(points), len(points[0]) ) )    
+    criteria = (cv2.TERM_CRITERIA_EPS, 3000, 0.01)
     flags = cv2.KMEANS_PP_CENTERS
-    ret, labels, centers = cv2.kmeans( np.asarray(points), 100, criteria, 10, flags)
+    ret, labels, centers = cv2.kmeans( np.asarray(points), K, criteria, 10, flags)
     print('mse: {0}'.format( math.sqrt(ret)/len(points) ) )
     
-    with open('{0}-{1}.sift.feature'.format('train1-100',K), 'w') as f:
+    with open('train1-{0}-{1}.sift.feature'.format(downsample, K), 'w') as f:
         centers.dump(f)
     return centers
 
@@ -67,7 +65,7 @@ if __name__ == '__main__':
     train_data_root = '..\\..\\CCPR-data\\feature\\train\\'
     
 #    extract_feature(label_filename = train_label_filename, data_root = train_data_root)
-    centers = generator_centers(data_root = train_data_root, K = 100)
+    centers = generator_centers(data_root=train_data_root, K=200, downsample=10)
     
 #    cv2.KMeans2(points, cluster_count, clusters,
 #                   (cv.CV_TERMCRIT_EPS + cv.CV_TERMCRIT_ITER, 10, 1.0))
